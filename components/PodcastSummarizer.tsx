@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { SUMMARY_TYPES, SummaryType, SummaryTypeInfo } from '@/lib/gemini';
 
 interface PodcastEpisode {
@@ -200,10 +201,12 @@ export default function PodcastSummarizer() {
           <div className="p-6 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <div className="flex gap-4">
               {result.episode.artworkUrl && (
-                <img
+                <Image
                   src={result.episode.artworkUrl}
                   alt={result.episode.podcastName}
-                  className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
+                  width={96}
+                  height={96}
+                  className="rounded-lg object-cover flex-shrink-0"
                 />
               )}
               <div className="min-w-0">
@@ -291,7 +294,7 @@ function formatMarkdown(text: string): string {
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>')
     // Wrap in paragraphs
-    .replace(/^(.*)$/s, '<p>$1</p>')
+    .replace(/^([\s\S]*)$/, '<p>$1</p>')
     // Clean up empty paragraphs
     .replace(/<p><\/p>/g, '')
     .replace(/<p>(<h[1-3]>)/g, '$1')
