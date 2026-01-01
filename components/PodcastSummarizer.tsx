@@ -23,7 +23,7 @@ interface SummarizeResponse {
 
 export default function PodcastSummarizer() {
   const [url, setUrl] = useState('');
-  const [summaryType, setSummaryType] = useState<SummaryType>('quick');
+  const [summaryType, setSummaryType] = useState<SummaryType>('quick-read');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ episode: PodcastEpisode; summary: string } | null>(null);
