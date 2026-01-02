@@ -80,91 +80,90 @@ export default function Home() {
         <div className="gradient-orb -right-48 top-0" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          {/* Conditionally show 2-column layout or full-width results */}
-          {!hasResult ? (
-            <div className="grid lg:grid-cols-2 gap-12 items-start">
-              {/* Left Column - Text & Form */}
-              <div className="space-y-6">
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                  Unlock Podcast
-                  <br />
-                  Knowledge,{' '}
-                  <span className="bg-gradient-to-r from-[--accent] to-purple-400 bg-clip-text text-transparent">
-                    Summarized.
-                  </span>
-                </h1>
+          <div className={`grid gap-12 items-start ${hasResult ? '' : 'lg:grid-cols-2'}`}>
+            {/* Left Column - Text & Form (or full width when showing results) */}
+            <div className={hasResult ? 'w-full' : 'space-y-6'}>
+              {/* Hero text - only show when no result */}
+              {!hasResult && (
+                <>
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                    Unlock Podcast
+                    <br />
+                    Knowledge,{' '}
+                    <span className="bg-gradient-to-r from-[--accent] to-purple-400 bg-clip-text text-transparent">
+                      Summarized.
+                    </span>
+                  </h1>
 
-                <p className="text-lg text-[--foreground-muted] max-w-lg">
-                  Transform any Apple Podcast episode into actionable insights. Choose from 5 powerful summary formats.
-                </p>
+                  <p className="text-lg text-[--foreground-muted] max-w-lg">
+                    Transform any Apple Podcast episode into actionable insights. Choose from 5 powerful summary formats.
+                  </p>
+                </>
+              )}
 
-                {/* Main Form Component */}
-                <PodcastSummarizer key={resetKey} onResultChange={handleResultChange} />
-              </div>
-
-              {/* Right Column - Headphone Image */}
-              <div className="hidden lg:flex justify-center items-center relative">
-                <div className="relative w-96 h-96">
-                {/* Glow effect behind headphones */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[--accent]/20 via-purple-500/10 to-cyan-500/20 rounded-full blur-3xl" />
-
-                {/* Headphone illustration using CSS */}
-                <div className="relative flex items-center justify-center h-full">
-                  <svg
-                    viewBox="0 0 200 200"
-                    className="w-80 h-80"
-                    fill="none"
-                  >
-                    {/* Headband */}
-                    <path
-                      d="M40 100 Q40 40 100 40 Q160 40 160 100"
-                      stroke="url(#headphoneGradient)"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      fill="none"
-                    />
-
-                    {/* Left ear cup */}
-                    <ellipse cx="40" cy="120" rx="25" ry="35" fill="url(#cupGradient)" />
-                    <ellipse cx="40" cy="120" rx="18" ry="28" fill="#1a1a2e" />
-                    <ellipse cx="40" cy="120" rx="12" ry="20" fill="url(#innerGradient)" opacity="0.5" />
-
-                    {/* Right ear cup */}
-                    <ellipse cx="160" cy="120" rx="25" ry="35" fill="url(#cupGradient)" />
-                    <ellipse cx="160" cy="120" rx="18" ry="28" fill="#1a1a2e" />
-                    <ellipse cx="160" cy="120" rx="12" ry="20" fill="url(#innerGradient)" opacity="0.5" />
-
-                    {/* Cushion details */}
-                    <ellipse cx="40" cy="120" rx="20" ry="30" stroke="#6366f1" strokeWidth="1" fill="none" opacity="0.3" />
-                    <ellipse cx="160" cy="120" rx="20" ry="30" stroke="#6366f1" strokeWidth="1" fill="none" opacity="0.3" />
-
-                    <defs>
-                      <linearGradient id="headphoneGradient" x1="40" y1="40" x2="160" y2="40">
-                        <stop offset="0%" stopColor="#4f46e5" />
-                        <stop offset="50%" stopColor="#6366f1" />
-                        <stop offset="100%" stopColor="#06b6d4" />
-                      </linearGradient>
-                      <linearGradient id="cupGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#374151" />
-                        <stop offset="50%" stopColor="#1f2937" />
-                        <stop offset="100%" stopColor="#111827" />
-                      </linearGradient>
-                      <radialGradient id="innerGradient" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#6366f1" />
-                        <stop offset="100%" stopColor="transparent" />
-                      </radialGradient>
-                    </defs>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-          ) : (
-            /* Full-width results view */
-            <div className="w-full">
+              {/* Main Form Component - SINGLE instance, always rendered */}
               <PodcastSummarizer key={resetKey} onResultChange={handleResultChange} />
             </div>
-          )}
+
+            {/* Right Column - Headphone Image (only show when no result) */}
+            {!hasResult && (
+              <div className="hidden lg:flex justify-center items-center relative">
+                <div className="relative w-96 h-96">
+                  {/* Glow effect behind headphones */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[--accent]/20 via-purple-500/10 to-cyan-500/20 rounded-full blur-3xl" />
+
+                  {/* Headphone illustration using CSS */}
+                  <div className="relative flex items-center justify-center h-full">
+                    <svg
+                      viewBox="0 0 200 200"
+                      className="w-80 h-80"
+                      fill="none"
+                    >
+                      {/* Headband */}
+                      <path
+                        d="M40 100 Q40 40 100 40 Q160 40 160 100"
+                        stroke="url(#headphoneGradient)"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+
+                      {/* Left ear cup */}
+                      <ellipse cx="40" cy="120" rx="25" ry="35" fill="url(#cupGradient)" />
+                      <ellipse cx="40" cy="120" rx="18" ry="28" fill="#1a1a2e" />
+                      <ellipse cx="40" cy="120" rx="12" ry="20" fill="url(#innerGradient)" opacity="0.5" />
+
+                      {/* Right ear cup */}
+                      <ellipse cx="160" cy="120" rx="25" ry="35" fill="url(#cupGradient)" />
+                      <ellipse cx="160" cy="120" rx="18" ry="28" fill="#1a1a2e" />
+                      <ellipse cx="160" cy="120" rx="12" ry="20" fill="url(#innerGradient)" opacity="0.5" />
+
+                      {/* Cushion details */}
+                      <ellipse cx="40" cy="120" rx="20" ry="30" stroke="#6366f1" strokeWidth="1" fill="none" opacity="0.3" />
+                      <ellipse cx="160" cy="120" rx="20" ry="30" stroke="#6366f1" strokeWidth="1" fill="none" opacity="0.3" />
+
+                      <defs>
+                        <linearGradient id="headphoneGradient" x1="40" y1="40" x2="160" y2="40">
+                          <stop offset="0%" stopColor="#4f46e5" />
+                          <stop offset="50%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="#06b6d4" />
+                        </linearGradient>
+                        <linearGradient id="cupGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#374151" />
+                          <stop offset="50%" stopColor="#1f2937" />
+                          <stop offset="100%" stopColor="#111827" />
+                        </linearGradient>
+                        <radialGradient id="innerGradient" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="transparent" />
+                        </radialGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
