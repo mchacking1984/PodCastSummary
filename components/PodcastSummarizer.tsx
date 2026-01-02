@@ -40,7 +40,6 @@ export default function PodcastSummarizer() {
     summary: string;
     model: string;
   } | null>(null);
-  const [showOptions, setShowOptions] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,74 +213,52 @@ export default function PodcastSummarizer() {
           </button>
         </div>
 
-        {/* Options Toggle */}
-        <button
-          type="button"
-          onClick={() => setShowOptions(!showOptions)}
-          className="flex items-center gap-2 text-sm text-[--foreground-muted] hover:text-white transition-colors"
-        >
-          <svg
-            className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        {/* Summary Type Selector */}
+        <div>
+          <label className="block text-sm font-medium text-[--foreground-muted] mb-2">
+            Summary Format
+          </label>
+          <select
+            value={summaryType}
+            onChange={(e) => setSummaryType(e.target.value as SummaryType)}
+            className="select-dropdown w-full px-4 py-3 rounded-xl outline-none"
+            disabled={loading}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-          {showOptions ? 'Hide options' : 'Show options'}
-        </button>
+            {SUMMARY_TYPES.map((type: SummaryTypeInfo) => (
+              <option key={type.id} value={type.id}>
+                {type.label} — {type.description}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        {/* Expandable Options */}
-        {showOptions && (
-          <div className="space-y-4 pt-2">
-            {/* Summary Type Selector */}
-            <div>
-              <label className="block text-sm font-medium text-[--foreground-muted] mb-2">
-                Summary Format
-              </label>
-              <select
-                value={summaryType}
-                onChange={(e) => setSummaryType(e.target.value as SummaryType)}
-                className="select-dropdown w-full px-4 py-3 rounded-xl outline-none"
+        {/* Model Selector */}
+        <div>
+          <label className="block text-sm font-medium text-[--foreground-muted] mb-2">
+            AI Model
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {GEMINI_MODELS.map((m: GeminiModelInfo) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setModel(m.id)}
                 disabled={loading}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  model === m.id
+                    ? 'border-[--accent] bg-[--accent]/10'
+                    : 'border-[--border] hover:border-[--accent]/50'
+                }`}
               >
-                {SUMMARY_TYPES.map((type: SummaryTypeInfo) => (
-                  <option key={type.id} value={type.id}>
-                    {type.label} — {type.description}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Model Selector */}
-            <div>
-              <label className="block text-sm font-medium text-[--foreground-muted] mb-2">
-                AI Model
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {GEMINI_MODELS.map((m: GeminiModelInfo) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setModel(m.id)}
-                    disabled={loading}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      model === m.id
-                        ? 'border-[--accent] bg-[--accent]/10'
-                        : 'border-[--border] hover:border-[--accent]/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-white text-sm">{m.label}</span>
-                      {getCostBadge(m.costTier)}
-                    </div>
-                    <p className="text-xs text-[--foreground-muted]">{m.description}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-white text-sm">{m.label}</span>
+                  {getCostBadge(m.costTier)}
+                </div>
+                <p className="text-xs text-[--foreground-muted]">{m.description}</p>
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </form>
 
       {/* Error Display */}

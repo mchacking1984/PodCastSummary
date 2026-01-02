@@ -33,9 +33,7 @@ export default function Home() {
             {/* Nav Links */}
             <div className="hidden sm:flex items-center gap-8">
               <a href="#" className="nav-link text-white font-medium">Home</a>
-              <a href="#" className="nav-link">Browse</a>
-              <a href="#" className="nav-link">About</a>
-              <a href="#" className="nav-link">Login</a>
+              <a href="#about" className="nav-link">About</a>
             </div>
 
             {/* Mobile menu button */}
@@ -135,9 +133,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Features Section */}
-      <div className="border-t border-[--border] bg-[--background-secondary]">
+      {/* About Section */}
+      <div id="about" className="border-t border-[--border] bg-[--background-secondary]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="max-w-3xl mx-auto text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">About PodSummarize</h2>
+            <p className="text-[--foreground-muted] text-lg">
+              PodSummarize transforms podcast episodes into actionable knowledge. Whether you&apos;re short on time
+              or want to revisit key insights, our AI-powered summaries help you get the most from every episode.
+            </p>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="card p-6">
               <div className="w-12 h-12 rounded-lg bg-[--accent]/10 flex items-center justify-center mb-4">
