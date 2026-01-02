@@ -349,8 +349,10 @@ export default function PodcastSummarizer({ onResultChange }: PodcastSummarizerP
  */
 function formatInline(text: string): string {
   return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Bold: **text** - use .+? to ensure at least one character
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic: *text* - but not if preceded/followed by another asterisk
+    .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
 }
 
 /**
@@ -404,10 +406,10 @@ function formatMarkdown(text: string): string {
     .replace(/^# (.*$)/gim, '<h1>$1</h1>')
     // Horizontal rule
     .replace(/^---$/gim, '<hr>')
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Bold: **text**
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic: *text* (but not **text**)
+    .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>')
     // Checkboxes
     .replace(/- \[ \] (.*$)/gim, '<li class="flex items-start gap-2"><span class="mt-1">☐</span><span>$1</span></li>')
     .replace(/- \[x\] (.*$)/gim, '<li class="flex items-start gap-2"><span class="mt-1">☑</span><span>$1</span></li>')
@@ -419,7 +421,8 @@ function formatMarkdown(text: string): string {
     .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
     // Blockquotes
     .replace(/^>\s+(.*)$/gim, '<blockquote>$1</blockquote>')
-    // Line breaks
+    // Line breaks - but not multiple consecutive ones
+    .replace(/\n{3,}/g, '\n\n') // Collapse 3+ newlines to 2
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>')
     // Wrap in paragraphs
@@ -438,7 +441,13 @@ function formatMarkdown(text: string): string {
     .replace(/<p>(__TABLE_\d+__)/g, '$1')
     .replace(/(__TABLE_\d+__)<\/p>/g, '$1')
     .replace(/<br>(__TABLE_\d+__)/g, '$1')
-    .replace(/(__TABLE_\d+__)<br>/g, '$1');
+    .replace(/(__TABLE_\d+__)<br>/g, '$1')
+    // Clean up excessive breaks inside/around lists
+    .replace(/<\/li><br><li/g, '</li><li')
+    .replace(/<\/li><br><br><li/g, '</li><li')
+    .replace(/<ul><br>/g, '<ul>')
+    .replace(/<br><\/ul>/g, '</ul>')
+    .replace(/<\/ul><br><br>/g, '</ul>');
 
   // Restore tables
   tableBlocks.forEach((table, index) => {
