@@ -1,11 +1,7 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 
 // Gemini Model Options
-export type GeminiModel =
-  | 'gemini-2.0-flash-exp'
-  | 'gemini-1.5-flash'
-  | 'gemini-1.5-pro'
-  | 'gemini-2.0-flash-thinking-exp';
+export type GeminiModel = 'gemini-3-pro-preview';
 
 export interface GeminiModelInfo {
   id: GeminiModel;
@@ -16,28 +12,10 @@ export interface GeminiModelInfo {
 
 export const GEMINI_MODELS: GeminiModelInfo[] = [
   {
-    id: 'gemini-2.0-flash-exp',
-    label: 'Gemini 2.0 Flash',
-    description: 'Fast & cost-effective (recommended)',
-    costTier: 'low',
-  },
-  {
-    id: 'gemini-1.5-flash',
-    label: 'Gemini 1.5 Flash',
-    description: 'Stable, great for most podcasts',
-    costTier: 'low',
-  },
-  {
-    id: 'gemini-1.5-pro',
-    label: 'Gemini 1.5 Pro',
-    description: 'Higher quality, more detailed analysis',
+    id: 'gemini-3-pro-preview',
+    label: 'Gemini 3 Pro',
+    description: 'Latest model with 1M context window',
     costTier: 'medium',
-  },
-  {
-    id: 'gemini-2.0-flash-thinking-exp',
-    label: 'Gemini 2.0 Thinking',
-    description: 'Best for complex analysis (experimental)',
-    costTier: 'high',
   },
 ];
 
@@ -496,7 +474,7 @@ export async function generatePodcastSummary(
   episodeTitle: string,
   podcastName: string,
   summaryType: SummaryType,
-  modelId: GeminiModel = 'gemini-2.0-flash-exp'
+  modelId: GeminiModel = 'gemini-3-pro-preview'
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
 
