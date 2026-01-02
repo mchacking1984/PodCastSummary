@@ -199,7 +199,7 @@ body {
 
 .summary-content ul,
 .summary-content ol {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   padding-left: 1.5rem;
 }
 
@@ -212,7 +212,22 @@ body {
 }
 
 .summary-content li {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.summary-content li::marker {
+  color: var(--accent);
+}
+
+/* Checkbox list items */
+.summary-content li.flex {
+  list-style: none;
+  margin-left: -1.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
 }
 
 .summary-content strong {
@@ -221,29 +236,45 @@ body {
 }
 
 .summary-content blockquote {
-  border-left: 3px solid var(--accent);
-  padding-left: 1rem;
-  margin: 1rem 0;
-  color: #9ca3af;
+  border-left: 4px solid var(--accent);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  color: #d1d5db;
   font-style: italic;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 0 8px 8px 0;
 }
 
 .summary-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
 }
 
 .summary-content th,
 .summary-content td {
   border: 1px solid var(--border);
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   text-align: left;
+  vertical-align: top;
 }
 
 .summary-content th {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(99, 102, 241, 0.1);
   font-weight: 600;
+  color: #ffffff;
+  border-bottom: 2px solid var(--accent);
+}
+
+.summary-content tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.summary-content tr:hover td {
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .summary-content code {

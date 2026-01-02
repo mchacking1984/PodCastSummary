@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   SUMMARY_TYPES,
@@ -29,9 +29,13 @@ interface SummarizeResponse {
   model?: string;
 }
 
-export default function PodcastSummarizer() {
+interface PodcastSummarizerProps {
+  onResultChange?: (hasResult: boolean) => void;
+}
+
+export default function PodcastSummarizer({ onResultChange }: PodcastSummarizerProps) {
   const [url, setUrl] = useState('');
-  const [summaryType, setSummaryType] = useState<SummaryType>('quick-read');
+  const [summaryType, setSummaryType] = useState<SummaryType>('executive-briefing');
   const [model, setModel] = useState<GeminiModel>('gemini-2.5-flash');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +44,11 @@ export default function PodcastSummarizer() {
     summary: string;
     model: string;
   } | null>(null);
+
+  // Notify parent when result state changes
+  useEffect(() => {
+    onResultChange?.(result !== null);
+  }, [result, onResultChange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,79 +99,98 @@ export default function PodcastSummarizer() {
     );
   };
 
-  // If we have a result, show the results view
+  // If we have a result, show the results view (full width)
   if (result) {
     return (
-      <div className="space-y-6">
-        {/* Episode Info Card */}
+      <div className="w-full space-y-6">
+        {/* Episode Header */}
         <div className="card p-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             {result.episode.artworkUrl && (
               <Image
                 src={result.episode.artworkUrl}
                 alt={result.episode.podcastName}
-                width={96}
-                height={96}
-                className="rounded-lg object-cover flex-shrink-0"
+                width={120}
+                height={120}
+                className="rounded-lg object-cover flex-shrink-0 mx-auto sm:mx-0"
               />
             )}
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-semibold text-white truncate">
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <h2 className="text-2xl font-bold text-white">
                 {result.episode.title}
               </h2>
-              <p className="text-[--foreground-muted]">{result.episode.podcastName}</p>
-              <div className="mt-2 flex flex-wrap gap-4 text-sm text-[--foreground-muted]">
-                {result.episode.duration && <span>Duration: {result.episode.duration}</span>}
-                {result.episode.pubDate && (
-                  <span>
-                    Published: {new Date(result.episode.pubDate).toLocaleDateString()}
+              <p className="text-lg text-[--foreground-muted] mt-1">{result.episode.podcastName}</p>
+              <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-4 text-sm text-[--foreground-muted]">
+                {result.episode.duration && (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {result.episode.duration}
                   </span>
                 )}
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs text-[--foreground-muted]">
-                  Generated with {GEMINI_MODELS.find((m) => m.id === result.model)?.label || result.model}
+                {result.episode.pubDate && (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {new Date(result.episode.pubDate).toLocaleDateString()}
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {GEMINI_MODELS.find((m) => m.id === result.model)?.label || result.model}
                 </span>
               </div>
+            </div>
+            <div className="flex sm:flex-col gap-2 justify-center">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(result.summary);
+                }}
+                className="px-4 py-2 rounded-lg border border-[--border] text-[--foreground-muted]
+                         hover:text-white hover:border-[--accent] transition-colors duration-200 text-sm"
+              >
+                Copy Summary
+              </button>
+              <button
+                onClick={() => {
+                  setResult(null);
+                  setUrl('');
+                }}
+                className="btn-primary px-4 py-2 rounded-lg text-white font-medium text-sm"
+              >
+                New Summary
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Summary Content */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">
-              {SUMMARY_TYPES.find((t) => t.id === summaryType)?.label || 'Summary'}
-            </h3>
+        {/* Summary Content - Full Width */}
+        <div className="card p-8">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[--border]">
+            <div className="w-10 h-10 rounded-lg bg-[--accent]/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-[--accent]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                {SUMMARY_TYPES.find((t) => t.id === summaryType)?.label || 'Summary'}
+              </h3>
+              <p className="text-sm text-[--foreground-muted]">
+                {SUMMARY_TYPES.find((t) => t.id === summaryType)?.description}
+              </p>
+            </div>
           </div>
           <div
-            className="summary-content"
+            className="summary-content max-w-none"
             dangerouslySetInnerHTML={{
               __html: formatMarkdown(result.summary),
             }}
           />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(result.summary);
-            }}
-            className="px-4 py-2 rounded-lg border border-[--border] text-[--foreground-muted]
-                     hover:text-white hover:border-[--accent] transition-colors duration-200"
-          >
-            Copy to Clipboard
-          </button>
-          <button
-            onClick={() => {
-              setResult(null);
-              setUrl('');
-            }}
-            className="btn-primary px-4 py-2 rounded-lg text-white font-medium"
-          >
-            Summarize Another
-          </button>
         </div>
       </div>
     );

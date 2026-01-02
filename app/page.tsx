@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useCallback } from 'react';
 import PodcastSummarizer from '@/components/PodcastSummarizer';
 
 function HeadphoneIcon({ className }: { className?: string }) {
@@ -18,21 +21,45 @@ function HeadphoneIcon({ className }: { className?: string }) {
 }
 
 export default function Home() {
+  const [resetKey, setResetKey] = useState(0);
+  const [hasResult, setHasResult] = useState(false);
+
+  const handleHomeClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setResetKey(prev => prev + 1);
+    setHasResult(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleResultChange = useCallback((showingResult: boolean) => {
+    setHasResult(showingResult);
+  }, []);
+
   return (
     <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="border-b border-[--border]">
+      <nav className="border-b border-[--border] sticky top-0 bg-[--background]/95 backdrop-blur-sm z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2">
+            <a
+              href="#"
+              onClick={handleHomeClick}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <HeadphoneIcon className="w-8 h-8 text-[--accent]" />
               <span className="text-xl font-bold tracking-tight">PODSUMMARIZE</span>
-            </div>
+            </a>
 
             {/* Nav Links */}
             <div className="hidden sm:flex items-center gap-8">
-              <a href="#" className="nav-link text-white font-medium">Home</a>
+              <a
+                href="#"
+                onClick={handleHomeClick}
+                className="nav-link text-white font-medium"
+              >
+                Home
+              </a>
               <a href="#about" className="nav-link">About</a>
             </div>
 
@@ -52,30 +79,32 @@ export default function Home() {
         <div className="waveform-bg" />
         <div className="gradient-orb -right-48 top-0" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Column - Text & Form */}
-            <div className="space-y-8">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                Unlock Podcast
-                <br />
-                Knowledge,{' '}
-                <span className="bg-gradient-to-r from-[--accent] to-purple-400 bg-clip-text text-transparent">
-                  Summarized.
-                </span>
-              </h1>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          {/* Conditionally show 2-column layout or full-width results */}
+          {!hasResult ? (
+            <div className="grid lg:grid-cols-2 gap-12 items-start">
+              {/* Left Column - Text & Form */}
+              <div className="space-y-6">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                  Unlock Podcast
+                  <br />
+                  Knowledge,{' '}
+                  <span className="bg-gradient-to-r from-[--accent] to-purple-400 bg-clip-text text-transparent">
+                    Summarized.
+                  </span>
+                </h1>
 
-              <p className="text-lg text-[--foreground-muted] max-w-lg">
-                Transform any Apple Podcast episode into actionable insights. Choose from 10 unique summary formats tailored to your needs.
-              </p>
+                <p className="text-lg text-[--foreground-muted] max-w-lg">
+                  Transform any Apple Podcast episode into actionable insights. Choose from 5 powerful summary formats.
+                </p>
 
-              {/* Main Form Component */}
-              <PodcastSummarizer />
-            </div>
+                {/* Main Form Component */}
+                <PodcastSummarizer key={resetKey} onResultChange={handleResultChange} />
+              </div>
 
-            {/* Right Column - Headphone Image */}
-            <div className="hidden lg:flex justify-center items-center relative">
-              <div className="relative w-96 h-96">
+              {/* Right Column - Headphone Image */}
+              <div className="hidden lg:flex justify-center items-center relative">
+                <div className="relative w-96 h-96">
                 {/* Glow effect behind headphones */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[--accent]/20 via-purple-500/10 to-cyan-500/20 rounded-full blur-3xl" />
 
@@ -130,6 +159,12 @@ export default function Home() {
               </div>
             </div>
           </div>
+          ) : (
+            /* Full-width results view */
+            <div className="w-full">
+              <PodcastSummarizer key={resetKey} onResultChange={handleResultChange} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -163,9 +198,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold mb-2">10 Summary Formats</h3>
+              <h3 className="text-lg font-semibold mb-2">5 Summary Formats</h3>
               <p className="text-[--foreground-muted] text-sm">
-                From quick briefs to deep dives. Choose the format that matches your attention budget.
+                From executive briefs to detailed roadmaps. Choose the format that matches your needs.
               </p>
             </div>
 
