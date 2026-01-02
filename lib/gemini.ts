@@ -1,7 +1,12 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 
 // Gemini Model Options
-export type GeminiModel = 'gemini-3-pro-preview';
+export type GeminiModel =
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.5-flash'
+  | 'gemini-2.5-pro'
+  | 'gemini-3-flash-preview'
+  | 'gemini-3-pro-preview';
 
 export interface GeminiModelInfo {
   id: GeminiModel;
@@ -12,10 +17,34 @@ export interface GeminiModelInfo {
 
 export const GEMINI_MODELS: GeminiModelInfo[] = [
   {
+    id: 'gemini-2.5-flash-lite',
+    label: 'Gemini 2.5 Flash Lite',
+    description: 'Fastest & most affordable option',
+    costTier: 'low',
+  },
+  {
+    id: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
+    description: 'Fast & cost-effective (recommended)',
+    costTier: 'low',
+  },
+  {
+    id: 'gemini-3-flash-preview',
+    label: 'Gemini 3 Flash',
+    description: 'Latest fast model with 1M context',
+    costTier: 'low',
+  },
+  {
+    id: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
+    description: 'Higher quality, detailed analysis',
+    costTier: 'medium',
+  },
+  {
     id: 'gemini-3-pro-preview',
     label: 'Gemini 3 Pro',
-    description: 'Latest model with 1M context window',
-    costTier: 'medium',
+    description: 'Most capable with 1M context window',
+    costTier: 'high',
   },
 ];
 
@@ -474,7 +503,7 @@ export async function generatePodcastSummary(
   episodeTitle: string,
   podcastName: string,
   summaryType: SummaryType,
-  modelId: GeminiModel = 'gemini-3-pro-preview'
+  modelId: GeminiModel = 'gemini-2.5-flash'
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
 

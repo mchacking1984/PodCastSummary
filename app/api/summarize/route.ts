@@ -39,10 +39,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<Summarize
       );
     }
 
-    // Validate model (default to gemini-3-pro-preview if not provided)
+    // Validate model (default to gemini-2.5-flash if not provided)
     const selectedModel = model && GEMINI_MODELS.find((m) => m.id === model)
       ? model
-      : 'gemini-3-pro-preview';
+      : 'gemini-2.5-flash';
 
     // Validate URL format
     let parsedUrl: URL;

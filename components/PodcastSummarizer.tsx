@@ -32,7 +32,7 @@ interface SummarizeResponse {
 export default function PodcastSummarizer() {
   const [url, setUrl] = useState('');
   const [summaryType, setSummaryType] = useState<SummaryType>('quick-read');
-  const [model, setModel] = useState<GeminiModel>('gemini-3-pro-preview');
+  const [model, setModel] = useState<GeminiModel>('gemini-2.5-flash');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
