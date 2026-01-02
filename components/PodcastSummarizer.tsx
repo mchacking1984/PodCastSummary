@@ -345,6 +345,15 @@ export default function PodcastSummarizer({ onResultChange }: PodcastSummarizerP
 }
 
 /**
+ * Apply inline formatting (bold, italic) to text
+ */
+function formatInline(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+}
+
+/**
  * Simple markdown to HTML converter for the summary display
  */
 function formatMarkdown(text: string): string {
@@ -359,15 +368,18 @@ function formatMarkdown(text: string): string {
     let isFirstDataRow = true;
 
     for (const row of rows) {
-      const cells = row
+      const rawCells = row
         .split('|')
         .filter((cell) => cell.trim() !== '')
         .map((cell) => cell.trim());
 
       // Skip separator rows (like |---|---|)
-      if (cells.every((cell) => /^[-:]+$/.test(cell))) {
+      if (rawCells.every((cell) => /^[-:]+$/.test(cell))) {
         continue;
       }
+
+      // Apply inline formatting to cell content
+      const cells = rawCells.map((cell) => formatInline(cell));
 
       // First row is header
       if (isFirstDataRow) {
