@@ -262,11 +262,17 @@ body {
   vertical-align: top;
 }
 
-.summary-content th {
+.summary-content thead th {
   background: rgba(99, 102, 241, 0.1);
   font-weight: 600;
   color: #ffffff;
   border-bottom: 2px solid var(--accent);
+}
+
+.summary-content th {
+  background: rgba(99, 102, 241, 0.1);
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .summary-content tr:nth-child(even) td {

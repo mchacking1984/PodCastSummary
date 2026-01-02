@@ -348,60 +348,90 @@ export default function PodcastSummarizer({ onResultChange }: PodcastSummarizerP
  * Simple markdown to HTML converter for the summary display
  */
 function formatMarkdown(text: string): string {
-  return (
-    text
-      // Headers
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      // Horizontal rule
-      .replace(/^---$/gim, '<hr>')
-      // Bold
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Italic
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      // Tables
-      .replace(/^\|(.+)\|$/gim, (match) => {
-        const cells = match
-          .split('|')
-          .filter((cell) => cell.trim())
-          .map((cell) => cell.trim());
-        if (cells.every((cell) => /^[-:]+$/.test(cell))) {
-          return ''; // Skip separator rows
-        }
-        const isHeader = match.includes('---');
-        const tag = isHeader ? 'th' : 'td';
-        return `<tr>${cells.map((cell) => `<${tag}>${cell}</${tag}>`).join('')}</tr>`;
-      })
-      // Wrap table rows
-      .replace(/(<tr>.*<\/tr>\n?)+/g, '<table>$&</table>')
-      // Checkboxes
-      .replace(/- \[ \] (.*$)/gim, '<li class="flex items-start gap-2"><span class="mt-1">☐</span><span>$1</span></li>')
-      .replace(/- \[x\] (.*$)/gim, '<li class="flex items-start gap-2"><span class="mt-1">☑</span><span>$1</span></li>')
-      // Unordered lists
-      .replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>')
-      // Ordered lists
-      .replace(/^\s*\d+\.\s+(.*)$/gim, '<li>$1</li>')
-      // Wrap consecutive list items
-      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-      // Blockquotes
-      .replace(/^>\s+(.*)$/gim, '<blockquote>$1</blockquote>')
-      // Line breaks
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>')
-      // Wrap in paragraphs
-      .replace(/^([\s\S]*)$/, '<p>$1</p>')
-      // Clean up empty paragraphs
-      .replace(/<p><\/p>/g, '')
-      .replace(/<p>(<h[1-3]>)/g, '$1')
-      .replace(/(<\/h[1-3]>)<\/p>/g, '$1')
-      .replace(/<p>(<ul>)/g, '$1')
-      .replace(/(<\/ul>)<\/p>/g, '$1')
-      .replace(/<p>(<table>)/g, '$1')
-      .replace(/(<\/table>)<\/p>/g, '$1')
-      .replace(/<p>(<blockquote>)/g, '$1')
-      .replace(/(<\/blockquote>)<\/p>/g, '$1')
-      .replace(/<p>(<hr>)/g, '$1')
-      .replace(/(<hr>)<\/p>/g, '$1')
-  );
+  // First, process tables separately to avoid line break issues
+  let processed = text;
+
+  // Collect table blocks and process them
+  const tableBlocks: string[] = [];
+  processed = processed.replace(/((?:^\|.+\|$\n?)+)/gim, (match) => {
+    const rows = match.trim().split('\n');
+    let tableHtml = '<table>';
+    let isFirstDataRow = true;
+
+    for (const row of rows) {
+      const cells = row
+        .split('|')
+        .filter((cell) => cell.trim() !== '')
+        .map((cell) => cell.trim());
+
+      // Skip separator rows (like |---|---|)
+      if (cells.every((cell) => /^[-:]+$/.test(cell))) {
+        continue;
+      }
+
+      // First row is header
+      if (isFirstDataRow) {
+        tableHtml += `<thead><tr>${cells.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead><tbody>`;
+        isFirstDataRow = false;
+      } else {
+        tableHtml += `<tr>${cells.map((cell) => `<td>${cell}</td>`).join('')}</tr>`;
+      }
+    }
+
+    tableHtml += '</tbody></table>';
+    const placeholder = `__TABLE_${tableBlocks.length}__`;
+    tableBlocks.push(tableHtml);
+    return placeholder;
+  });
+
+  // Now process the rest of the markdown
+  processed = processed
+    // Headers
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    // Horizontal rule
+    .replace(/^---$/gim, '<hr>')
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Checkboxes
+    .replace(/- \[ \] (.*$)/gim, '<li class="flex items-start gap-2"><span class="mt-1">☐</span><span>$1</span></li>')
+    .replace(/- \[x\] (.*$)/gim, '<li class="flex items-start gap-2"><span class="mt-1">☑</span><span>$1</span></li>')
+    // Unordered lists
+    .replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>')
+    // Ordered lists
+    .replace(/^\s*\d+\.\s+(.*)$/gim, '<li>$1</li>')
+    // Wrap consecutive list items
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    // Blockquotes
+    .replace(/^>\s+(.*)$/gim, '<blockquote>$1</blockquote>')
+    // Line breaks
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    // Wrap in paragraphs
+    .replace(/^([\s\S]*)$/, '<p>$1</p>')
+    // Clean up empty paragraphs and unwrap block elements
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p>(<h[1-3]>)/g, '$1')
+    .replace(/(<\/h[1-3]>)<\/p>/g, '$1')
+    .replace(/<p>(<ul>)/g, '$1')
+    .replace(/(<\/ul>)<\/p>/g, '$1')
+    .replace(/<p>(<blockquote>)/g, '$1')
+    .replace(/(<\/blockquote>)<\/p>/g, '$1')
+    .replace(/<p>(<hr>)/g, '$1')
+    .replace(/(<hr>)<\/p>/g, '$1')
+    // Clean up around table placeholders
+    .replace(/<p>(__TABLE_\d+__)/g, '$1')
+    .replace(/(__TABLE_\d+__)<\/p>/g, '$1')
+    .replace(/<br>(__TABLE_\d+__)/g, '$1')
+    .replace(/(__TABLE_\d+__)<br>/g, '$1');
+
+  // Restore tables
+  tableBlocks.forEach((table, index) => {
+    processed = processed.replace(`__TABLE_${index}__`, table);
+  });
+
+  return processed;
 }
