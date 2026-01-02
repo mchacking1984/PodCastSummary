@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Podcast Summary',
-  description: 'Get AI-powered summaries of any Apple Podcast episode',
+  title: 'PodSummarize - AI Podcast Summaries',
+  description: 'Unlock Podcast Knowledge, Summarized. Get AI-powered summaries of any Apple Podcast episode.',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={inter.className}>{children}</body>
     </html>
   );

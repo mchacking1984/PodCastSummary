@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEpisodeFromAppleUrl, PodcastEpisode } from '@/lib/apple-podcasts';
-import { generatePodcastSummary, SummaryType, SUMMARY_TYPES } from '@/lib/gemini';
+import { generatePodcastSummary, SummaryType, SUMMARY_TYPES, GeminiModel, GEMINI_MODELS } from '@/lib/gemini';
 
 export const maxDuration = 300; // 5 minutes for audio processing
 
 interface SummarizeRequest {
   url: string;
   summaryType: SummaryType;
+  model: GeminiModel;
 }
 
 interface SummarizeResponse {
@@ -14,12 +15,13 @@ interface SummarizeResponse {
   episode?: PodcastEpisode;
   summary?: string;
   error?: string;
+  model?: string;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<SummarizeResponse>> {
   try {
     const body: SummarizeRequest = await request.json();
-    const { url, summaryType } = body;
+    const { url, summaryType, model } = body;
 
     // Validate input
     if (!url || typeof url !== 'string') {
@@ -36,6 +38,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Summarize
         { status: 400 }
       );
     }
+
+    // Validate model (default to gemini-2.0-flash-exp if not provided)
+    const selectedModel = model && GEMINI_MODELS.find((m) => m.id === model)
+      ? model
+      : 'gemini-2.0-flash-exp';
 
     // Validate URL format
     let parsedUrl: URL;
@@ -65,12 +72,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<Summarize
     console.log(`Found episode: ${episode.title}`);
 
     // Generate summary using Gemini
-    console.log('Generating summary...');
+    console.log(`Generating summary with model: ${selectedModel}...`);
     const summary = await generatePodcastSummary(
       episode.audioUrl,
       episode.title,
       episode.podcastName,
-      summaryType
+      summaryType,
+      selectedModel
     );
     console.log('Summary generated successfully');
 
@@ -78,6 +86,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Summarize
       success: true,
       episode,
       summary,
+      model: selectedModel,
     });
   } catch (error) {
     console.error('Error processing podcast:', error);

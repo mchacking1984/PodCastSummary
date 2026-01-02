@@ -1,5 +1,46 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 
+// Gemini Model Options
+export type GeminiModel =
+  | 'gemini-2.0-flash-exp'
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-pro'
+  | 'gemini-2.0-flash-thinking-exp';
+
+export interface GeminiModelInfo {
+  id: GeminiModel;
+  label: string;
+  description: string;
+  costTier: 'low' | 'medium' | 'high';
+}
+
+export const GEMINI_MODELS: GeminiModelInfo[] = [
+  {
+    id: 'gemini-2.0-flash-exp',
+    label: 'Gemini 2.0 Flash',
+    description: 'Fast & cost-effective (recommended)',
+    costTier: 'low',
+  },
+  {
+    id: 'gemini-1.5-flash',
+    label: 'Gemini 1.5 Flash',
+    description: 'Stable, great for most podcasts',
+    costTier: 'low',
+  },
+  {
+    id: 'gemini-1.5-pro',
+    label: 'Gemini 1.5 Pro',
+    description: 'Higher quality, more detailed analysis',
+    costTier: 'medium',
+  },
+  {
+    id: 'gemini-2.0-flash-thinking-exp',
+    label: 'Gemini 2.0 Thinking',
+    description: 'Best for complex analysis (experimental)',
+    costTier: 'high',
+  },
+];
+
 export type SummaryType =
   | 'quick-read'
   | 'deep-dive'
@@ -454,7 +495,8 @@ export async function generatePodcastSummary(
   audioUrl: string,
   episodeTitle: string,
   podcastName: string,
-  summaryType: SummaryType
+  summaryType: SummaryType,
+  modelId: GeminiModel = 'gemini-2.0-flash-exp'
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -464,9 +506,9 @@ export async function generatePodcastSummary(
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  // Use Gemini 2.0 Flash for cost efficiency and audio support
+  // Use the selected Gemini model
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: modelId,
   });
 
   // Fetch and encode the audio
