@@ -19,8 +19,20 @@ const MAX_LOGS = 1000; // Keep last 1000 logs
  * Get the KV client - supports multiple env var naming conventions
  */
 function getKVClient() {
+  // Log available env vars for debugging (only log presence, not values)
+  console.log('KV Config check:', {
+    hasStorageRestApiUrl: !!process.env.STORAGE_REST_API_URL,
+    hasStorageRestApiToken: !!process.env.STORAGE_REST_API_TOKEN,
+    hasStorageUrl: !!process.env.STORAGE_URL,
+    hasKvRestApiUrl: !!process.env.KV_REST_API_URL,
+    hasKvRestApiToken: !!process.env.KV_REST_API_TOKEN,
+    hasKvUrl: !!process.env.KV_URL,
+    hasRedisUrl: !!process.env.REDIS_URL,
+  });
+
   // Check for custom prefix naming (e.g., STORAGE_REST_API_URL)
   if (process.env.STORAGE_REST_API_URL && process.env.STORAGE_REST_API_TOKEN) {
+    console.log('Using STORAGE_REST_API_* credentials');
     return createClient({
       url: process.env.STORAGE_REST_API_URL,
       token: process.env.STORAGE_REST_API_TOKEN,
@@ -29,9 +41,11 @@ function getKVClient() {
 
   // Check for standard KV naming (uses default kv export)
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    console.log('Using KV_REST_API_* credentials');
     return kv;
   }
 
+  console.log('No KV credentials found');
   return null;
 }
 
