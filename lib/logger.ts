@@ -1,4 +1,4 @@
-import { createClient, kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 
 export interface LogEntry {
   id: string;
@@ -15,45 +15,69 @@ export interface LogEntry {
 const LOGS_KEY = 'podcast_logs';
 const MAX_LOGS = 1000; // Keep last 1000 logs
 
+// Cached Redis client
+let redisClient: Redis | null = null;
+
 /**
- * Get the KV client - supports multiple env var naming conventions
+ * Get the Redis client - supports REDIS_URL env var
  */
-function getKVClient() {
+function getRedisClient(): Redis | null {
+  if (redisClient) {
+    return redisClient;
+  }
+
   // Log available env vars for debugging (only log presence, not values)
-  console.log('KV Config check:', {
-    hasStorageRestApiUrl: !!process.env.STORAGE_REST_API_URL,
-    hasStorageRestApiToken: !!process.env.STORAGE_REST_API_TOKEN,
-    hasStorageUrl: !!process.env.STORAGE_URL,
+  console.log('Redis Config check:', {
+    hasRedisUrl: !!process.env.REDIS_URL,
     hasKvRestApiUrl: !!process.env.KV_REST_API_URL,
     hasKvRestApiToken: !!process.env.KV_REST_API_TOKEN,
-    hasKvUrl: !!process.env.KV_URL,
-    hasRedisUrl: !!process.env.REDIS_URL,
   });
 
-  // Check for custom prefix naming (e.g., STORAGE_REST_API_URL)
-  if (process.env.STORAGE_REST_API_URL && process.env.STORAGE_REST_API_TOKEN) {
-    console.log('Using STORAGE_REST_API_* credentials');
-    return createClient({
-      url: process.env.STORAGE_REST_API_URL,
-      token: process.env.STORAGE_REST_API_TOKEN,
-    });
+  // Check for REDIS_URL (Vercel Redis / Upstash format)
+  if (process.env.REDIS_URL) {
+    console.log('Using REDIS_URL');
+    try {
+      // Parse the REDIS_URL to extract components
+      // Format: redis://default:password@host:port or rediss://...
+      const url = new URL(process.env.REDIS_URL);
+      const isSecure = url.protocol === 'rediss:';
+      const host = url.hostname;
+      const port = url.port || (isSecure ? '6379' : '6379');
+      const password = url.password;
+
+      // Construct the REST API URL format that @upstash/redis expects
+      const restUrl = `https://${host}`;
+
+      redisClient = new Redis({
+        url: restUrl,
+        token: password,
+      });
+      return redisClient;
+    } catch (error) {
+      console.error('Failed to parse REDIS_URL:', error);
+      return null;
+    }
   }
 
-  // Check for standard KV naming (uses default kv export)
+  // Check for Upstash REST API format
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     console.log('Using KV_REST_API_* credentials');
-    return kv;
+    redisClient = new Redis({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    });
+    return redisClient;
   }
 
-  console.log('No KV credentials found');
+  console.log('No Redis credentials found');
   return null;
 }
 
 /**
- * Check if Vercel KV is configured
+ * Check if Redis is configured
  */
-function isKVConfigured(): boolean {
-  return getKVClient() !== null;
+function isRedisConfigured(): boolean {
+  return getRedisClient() !== null;
 }
 
 /**
@@ -68,9 +92,9 @@ function generateId(): string {
  */
 export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promise<void> {
   try {
-    const client = getKVClient();
+    const client = getRedisClient();
     if (!client) {
-      console.log('Vercel KV/Redis not configured, skipping log save');
+      console.log('Redis not configured, skipping log save');
       return;
     }
 
@@ -89,7 +113,7 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
     // Keep only the last MAX_LOGS entries
     const trimmedLogs = existingLogs.slice(0, MAX_LOGS);
 
-    // Save back to KV
+    // Save back to Redis
     await client.set(LOGS_KEY, trimmedLogs);
 
     console.log('Log saved:', logEntry.id);
@@ -104,9 +128,9 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
  */
 export async function getLogs(): Promise<LogEntry[]> {
   try {
-    const client = getKVClient();
+    const client = getRedisClient();
     if (!client) {
-      console.log('Vercel KV/Redis not configured');
+      console.log('Redis not configured');
       return [];
     }
 
@@ -123,7 +147,7 @@ export async function getLogs(): Promise<LogEntry[]> {
  */
 export async function clearLogs(): Promise<void> {
   try {
-    const client = getKVClient();
+    const client = getRedisClient();
     if (!client) {
       return;
     }
