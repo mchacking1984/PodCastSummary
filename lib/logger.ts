@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { createClient, kv } from '@vercel/kv';
 
 export interface LogEntry {
   id: string;
@@ -16,6 +16,33 @@ const LOGS_KEY = 'podcast_logs';
 const MAX_LOGS = 1000; // Keep last 1000 logs
 
 /**
+ * Get the KV client - supports multiple env var naming conventions
+ */
+function getKVClient() {
+  // Check for custom prefix naming (e.g., STORAGE_REST_API_URL)
+  if (process.env.STORAGE_REST_API_URL && process.env.STORAGE_REST_API_TOKEN) {
+    return createClient({
+      url: process.env.STORAGE_REST_API_URL,
+      token: process.env.STORAGE_REST_API_TOKEN,
+    });
+  }
+
+  // Check for standard KV naming (uses default kv export)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    return kv;
+  }
+
+  return null;
+}
+
+/**
+ * Check if Vercel KV is configured
+ */
+function isKVConfigured(): boolean {
+  return getKVClient() !== null;
+}
+
+/**
  * Generate a unique ID for log entries
  */
 function generateId(): string {
@@ -27,9 +54,9 @@ function generateId(): string {
  */
 export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promise<void> {
   try {
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.log('Vercel KV not configured, skipping log save');
+    const client = getKVClient();
+    if (!client) {
+      console.log('Vercel KV/Redis not configured, skipping log save');
       return;
     }
 
@@ -40,7 +67,7 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
     };
 
     // Get existing logs
-    const existingLogs = await kv.get<LogEntry[]>(LOGS_KEY) || [];
+    const existingLogs = await client.get<LogEntry[]>(LOGS_KEY) || [];
 
     // Add new log at the beginning
     existingLogs.unshift(logEntry);
@@ -49,7 +76,7 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
     const trimmedLogs = existingLogs.slice(0, MAX_LOGS);
 
     // Save back to KV
-    await kv.set(LOGS_KEY, trimmedLogs);
+    await client.set(LOGS_KEY, trimmedLogs);
 
     console.log('Log saved:', logEntry.id);
   } catch (error) {
@@ -63,13 +90,13 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
  */
 export async function getLogs(): Promise<LogEntry[]> {
   try {
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.log('Vercel KV not configured');
+    const client = getKVClient();
+    if (!client) {
+      console.log('Vercel KV/Redis not configured');
       return [];
     }
 
-    const logs = await kv.get<LogEntry[]>(LOGS_KEY) || [];
+    const logs = await client.get<LogEntry[]>(LOGS_KEY) || [];
     return logs;
   } catch (error) {
     console.error('Failed to get logs:', error);
@@ -82,10 +109,11 @@ export async function getLogs(): Promise<LogEntry[]> {
  */
 export async function clearLogs(): Promise<void> {
   try {
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    const client = getKVClient();
+    if (!client) {
       return;
     }
-    await kv.del(LOGS_KEY);
+    await client.del(LOGS_KEY);
     console.log('Logs cleared');
   } catch (error) {
     console.error('Failed to clear logs:', error);
