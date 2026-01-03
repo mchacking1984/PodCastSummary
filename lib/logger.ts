@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+import Redis from 'ioredis';
 
 export interface LogEntry {
   id: string;
@@ -29,44 +29,22 @@ function getRedisClient(): Redis | null {
   // Log available env vars for debugging (only log presence, not values)
   console.log('Redis Config check:', {
     hasRedisUrl: !!process.env.REDIS_URL,
-    hasKvRestApiUrl: !!process.env.KV_REST_API_URL,
-    hasKvRestApiToken: !!process.env.KV_REST_API_TOKEN,
   });
 
   // Check for REDIS_URL (Vercel Redis / Upstash format)
   if (process.env.REDIS_URL) {
     console.log('Using REDIS_URL');
     try {
-      // Parse the REDIS_URL to extract components
-      // Format: redis://default:password@host:port or rediss://...
-      const url = new URL(process.env.REDIS_URL);
-      const isSecure = url.protocol === 'rediss:';
-      const host = url.hostname;
-      const port = url.port || (isSecure ? '6379' : '6379');
-      const password = url.password;
-
-      // Construct the REST API URL format that @upstash/redis expects
-      const restUrl = `https://${host}`;
-
-      redisClient = new Redis({
-        url: restUrl,
-        token: password,
+      redisClient = new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+        connectTimeout: 10000,
       });
       return redisClient;
     } catch (error) {
-      console.error('Failed to parse REDIS_URL:', error);
+      console.error('Failed to connect to Redis:', error);
       return null;
     }
-  }
-
-  // Check for Upstash REST API format
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    console.log('Using KV_REST_API_* credentials');
-    redisClient = new Redis({
-      url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
-    });
-    return redisClient;
   }
 
   console.log('No Redis credentials found');
@@ -105,7 +83,8 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
     };
 
     // Get existing logs
-    const existingLogs = await client.get<LogEntry[]>(LOGS_KEY) || [];
+    const existingData = await client.get(LOGS_KEY);
+    const existingLogs: LogEntry[] = existingData ? JSON.parse(existingData) : [];
 
     // Add new log at the beginning
     existingLogs.unshift(logEntry);
@@ -114,7 +93,7 @@ export async function saveLog(entry: Omit<LogEntry, 'id' | 'timestamp'>): Promis
     const trimmedLogs = existingLogs.slice(0, MAX_LOGS);
 
     // Save back to Redis
-    await client.set(LOGS_KEY, trimmedLogs);
+    await client.set(LOGS_KEY, JSON.stringify(trimmedLogs));
 
     console.log('Log saved:', logEntry.id);
   } catch (error) {
@@ -134,7 +113,8 @@ export async function getLogs(): Promise<LogEntry[]> {
       return [];
     }
 
-    const logs = await client.get<LogEntry[]>(LOGS_KEY) || [];
+    const data = await client.get(LOGS_KEY);
+    const logs: LogEntry[] = data ? JSON.parse(data) : [];
     return logs;
   } catch (error) {
     console.error('Failed to get logs:', error);
