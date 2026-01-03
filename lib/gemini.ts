@@ -5,8 +5,7 @@ export type GeminiModel =
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.5-flash'
   | 'gemini-2.5-pro'
-  | 'gemini-3-flash-preview'
-  | 'gemini-3-pro-preview';
+  | 'gemini-3-flash-preview';
 
 export interface GeminiModelInfo {
   id: GeminiModel;
@@ -39,12 +38,6 @@ export const GEMINI_MODELS: GeminiModelInfo[] = [
     label: 'Gemini 2.5 Pro',
     description: 'Higher quality, detailed analysis',
     costTier: 'medium',
-  },
-  {
-    id: 'gemini-3-pro-preview',
-    label: 'Gemini 3 Pro',
-    description: 'Most capable with 1M context window',
-    costTier: 'high',
   },
 ];
 
