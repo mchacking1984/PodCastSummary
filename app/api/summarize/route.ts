@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEpisodeFromAppleUrl, PodcastEpisode } from '@/lib/apple-podcasts';
 import { generatePodcastSummary, SummaryType, SUMMARY_TYPES, GeminiModel, GEMINI_MODELS } from '@/lib/gemini';
+import { saveLog } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes for audio processing
 
@@ -82,6 +83,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<Summarize
     );
     console.log('Summary generated successfully');
 
+    // Log successful request (don't await to avoid slowing response)
+    saveLog({
+      podcastName: episode.podcastName,
+      episodeTitle: episode.title,
+      model: selectedModel,
+      summaryTypes: [summaryType],
+      duration: episode.duration,
+      success: true,
+    }).catch(console.error);
+
     return NextResponse.json({
       success: true,
       episode,
@@ -95,6 +106,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<Summarize
       error instanceof Error
         ? error.message
         : 'An unexpected error occurred. Please try again.';
+
+    // Log failed request (we don't have access to request details in catch)
+    saveLog({
+      podcastName: 'Unknown',
+      episodeTitle: 'Unknown',
+      model: 'unknown',
+      summaryTypes: ['unknown'],
+      success: false,
+      error: errorMessage,
+    }).catch(console.error);
 
     return NextResponse.json(
       { success: false, error: errorMessage },
