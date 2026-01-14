@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import PodcastSummarizer from '@/components/PodcastSummarizer';
+
+const SITE_PASSWORD = 'lighthouse';
+const AUTH_KEY = 'podsummarize_auth';
 
 function HeadphoneIcon({ className }: { className?: string }) {
   return (
@@ -23,6 +26,30 @@ function HeadphoneIcon({ className }: { className?: string }) {
 export default function Home() {
   const [resetKey, setResetKey] = useState(0);
   const [hasResult, setHasResult] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    // Check if already authenticated
+    const auth = localStorage.getItem(AUTH_KEY);
+    if (auth === 'true') {
+      setIsAuthenticated(true);
+    }
+    setIsCheckingAuth(false);
+  }, []);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === SITE_PASSWORD) {
+      localStorage.setItem(AUTH_KEY, 'true');
+      setIsAuthenticated(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password');
+    }
+  };
 
   const handleHomeClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,6 +61,48 @@ export default function Home() {
   const handleResultChange = useCallback((showingResult: boolean) => {
     setHasResult(showingResult);
   }, []);
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[--accent]"></div>
+      </div>
+    );
+  }
+
+  // Show password form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="card p-8 max-w-md w-full mx-4">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <HeadphoneIcon className="w-10 h-10 text-[--accent]" />
+            <span className="text-2xl font-bold tracking-tight">PODSUMMARIZE</span>
+          </div>
+          <p className="text-center text-[--foreground-muted] mb-6">
+            Enter password to access
+          </p>
+          <form onSubmit={handlePasswordSubmit}>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="input-field w-full mb-4"
+              autoFocus
+            />
+            {passwordError && (
+              <p className="text-red-400 text-sm mb-4">{passwordError}</p>
+            )}
+            <button type="submit" className="btn-primary w-full">
+              Enter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
