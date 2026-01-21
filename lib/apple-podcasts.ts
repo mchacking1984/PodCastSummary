@@ -22,12 +22,12 @@ interface iTunesLookupResult {
 }
 
 /**
- * Extracts podcast ID and episode ID from an Apple Podcasts URL
+ * Extracts podcast ID, episode ID, and episode slug from an Apple Podcasts URL
  * Supports formats:
  * - https://podcasts.apple.com/us/podcast/episode-name/id123456789?i=1000123456789
  * - https://podcasts.apple.com/podcast/id123456789?i=1000123456789
  */
-export function parseApplePodcastUrl(url: string): { podcastId: string; episodeId: string | null } {
+export function parseApplePodcastUrl(url: string): { podcastId: string; episodeId: string | null; episodeSlug: string | null } {
   const urlObj = new URL(url);
 
   // Extract podcast ID from path (e.g., /id123456789 or /podcast-name/id123456789)
@@ -41,7 +41,24 @@ export function parseApplePodcastUrl(url: string): { podcastId: string; episodeI
   // Extract episode ID from query parameter (e.g., ?i=1000123456789)
   const episodeId = urlObj.searchParams.get('i');
 
-  return { podcastId, episodeId };
+  // Extract episode slug from URL path
+  // URL format: /us/podcast/episode-name-slug/id123456789
+  // We want to get "episode-name-slug" which is the segment before "id..."
+  let episodeSlug: string | null = null;
+  const pathParts = urlObj.pathname.split('/').filter(Boolean);
+
+  // Find the index of the id segment
+  const idIndex = pathParts.findIndex(part => part.startsWith('id'));
+  if (idIndex > 0) {
+    // The segment before id is potentially the episode slug
+    const potentialSlug = pathParts[idIndex - 1];
+    // Make sure it's not "podcast" (which would mean no episode slug)
+    if (potentialSlug && potentialSlug !== 'podcast') {
+      episodeSlug = potentialSlug;
+    }
+  }
+
+  return { podcastId, episodeId, episodeSlug };
 }
 
 /**
@@ -120,6 +137,7 @@ export async function getEpisodeDetailsFromiTunes(episodeId: string): Promise<{ 
 export async function getEpisodeFromFeed(
   feedUrl: string,
   episodeId: string | null,
+  episodeSlug: string | null,
   podcastName: string,
   artworkUrl: string
 ): Promise<PodcastEpisode> {
@@ -159,36 +177,74 @@ export async function getEpisodeFromFeed(
     let episode;
 
     console.log('Episode ID from URL:', episodeId);
+    console.log('Episode slug from URL:', episodeSlug);
     console.log('Total episodes in feed:', feed.items.length);
 
-    if (episodeId) {
-      // First, try to get episode title from iTunes API
-      const itunesEpisode = await getEpisodeDetailsFromiTunes(episodeId);
-      console.log('iTunes episode lookup result:', itunesEpisode);
+    // Helper to normalize text for comparison
+    const normalizeForMatch = (text: string) => {
+      return text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+        .replace(/\s+/g, ' ')        // Normalize spaces
+        .trim();
+    };
 
-      if (itunesEpisode?.title) {
-        // Match by title (normalized for comparison)
-        const normalizeTitle = (title: string) => title.toLowerCase().trim();
-        const targetTitle = normalizeTitle(itunesEpisode.title);
-        console.log('Looking for title:', targetTitle);
+    // Convert slug to search terms (e.g., "how-to-make-money" -> "how to make money")
+    const slugToWords = (slug: string) => {
+      return slug.replace(/-/g, ' ').toLowerCase();
+    };
+
+    if (episodeSlug || episodeId) {
+      // First, try to match by episode slug (most reliable)
+      if (episodeSlug) {
+        const slugWords = slugToWords(episodeSlug);
+        console.log('Searching for episode with slug words:', slugWords);
 
         // Log first 5 episode titles from feed for debugging
         console.log('First 5 feed episode titles:', feed.items.slice(0, 5).map(i => i.title));
 
         episode = feed.items.find((item) => {
-          const itemTitle = normalizeTitle(item.title || '');
-          return itemTitle === targetTitle || itemTitle.includes(targetTitle) || targetTitle.includes(itemTitle);
+          const itemTitle = normalizeForMatch(item.title || '');
+          const slugNormalized = normalizeForMatch(slugWords);
+
+          // Check if all significant words from the slug are in the title
+          const slugWordList = slugNormalized.split(' ').filter(w => w.length > 2);
+          const matchScore = slugWordList.filter(word => itemTitle.includes(word)).length;
+          const matchRatio = matchScore / slugWordList.length;
+
+          // Require at least 80% of words to match
+          return matchRatio >= 0.8;
         });
 
         if (episode) {
-          console.log('Found episode by title match:', episode.title);
+          console.log('Found episode by slug match:', episode.title);
         } else {
-          console.log('No title match found');
+          console.log('No slug match found');
+        }
+      }
+
+      // If not found by slug, try iTunes API lookup (fallback)
+      if (!episode && episodeId) {
+        const itunesEpisode = await getEpisodeDetailsFromiTunes(episodeId);
+        console.log('iTunes episode lookup result:', itunesEpisode);
+
+        if (itunesEpisode?.title) {
+          const targetTitle = normalizeForMatch(itunesEpisode.title);
+          console.log('Looking for iTunes title:', targetTitle);
+
+          episode = feed.items.find((item) => {
+            const itemTitle = normalizeForMatch(item.title || '');
+            return itemTitle === targetTitle || itemTitle.includes(targetTitle) || targetTitle.includes(itemTitle);
+          });
+
+          if (episode) {
+            console.log('Found episode by iTunes title match:', episode.title);
+          }
         }
       }
 
       // If not found by title, try to find by ID in the guid
-      if (!episode) {
+      if (!episode && episodeId) {
         console.log('Trying to match by guid...');
         episode = feed.items.find((item) => {
           const guid = item.guid || '';
@@ -205,8 +261,8 @@ export async function getEpisodeFromFeed(
         episode = feed.items[0];
       }
     } else {
-      // No episode ID specified, use most recent
-      console.log('No episode ID in URL, using most recent');
+      // No episode ID or slug specified, use most recent
+      console.log('No episode ID or slug in URL, using most recent');
       episode = feed.items[0];
     }
 
@@ -240,9 +296,9 @@ export async function getEpisodeFromFeed(
  * Main function to get episode details from an Apple Podcasts URL
  */
 export async function getEpisodeFromAppleUrl(url: string): Promise<PodcastEpisode> {
-  const { podcastId, episodeId } = parseApplePodcastUrl(url);
+  const { podcastId, episodeId, episodeSlug } = parseApplePodcastUrl(url);
   const { feedUrl, podcastName, artworkUrl } = await getPodcastFeedUrl(podcastId);
-  const episode = await getEpisodeFromFeed(feedUrl, episodeId, podcastName, artworkUrl);
+  const episode = await getEpisodeFromFeed(feedUrl, episodeId, episodeSlug, podcastName, artworkUrl);
 
   return episode;
 }
