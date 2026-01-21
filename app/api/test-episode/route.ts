@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEpisodeFromAppleUrl, parseApplePodcastUrl, getEpisodeDetailsFromiTunes } from '@/lib/apple-podcasts';
+import { getEpisodeFromAppleUrl, parseApplePodcastUrl } from '@/lib/apple-podcasts';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,11 +8,12 @@ export async function POST(request: NextRequest) {
     // Parse the URL to get IDs
     const { podcastId, episodeId } = parseApplePodcastUrl(url);
 
-    // Get iTunes episode info if we have an episode ID
-    let itunesEpisodeTitle = null;
+    // Get raw iTunes API response for the episode ID
+    let itunesRawResponse = null;
     if (episodeId) {
-      const itunesEpisode = await getEpisodeDetailsFromiTunes(episodeId);
-      itunesEpisodeTitle = itunesEpisode?.title || null;
+      const lookupUrl = `https://itunes.apple.com/lookup?id=${episodeId}`;
+      const response = await fetch(lookupUrl);
+      itunesRawResponse = await response.json();
     }
 
     // Get the full episode details
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       debug: {
         podcastId,
         episodeId,
-        itunesEpisodeTitle,
+        itunesRawResponse,
         foundEpisodeTitle: episode.title,
         foundEpisodePubDate: episode.pubDate,
       },
