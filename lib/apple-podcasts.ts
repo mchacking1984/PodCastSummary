@@ -16,6 +16,8 @@ interface iTunesLookupResult {
     collectionName: string;
     feedUrl: string;
     artworkUrl600: string;
+    trackName?: string;
+    wrapperType?: string;
   }>;
 }
 
@@ -73,6 +75,36 @@ export async function getPodcastFeedUrl(podcastId: string): Promise<{ feedUrl: s
 }
 
 /**
+ * Fetches episode details from iTunes API by episode ID
+ */
+export async function getEpisodeDetailsFromiTunes(episodeId: string): Promise<{ title: string } | null> {
+  try {
+    const lookupUrl = `https://itunes.apple.com/lookup?id=${episodeId}`;
+    const response = await fetch(lookupUrl);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data: iTunesLookupResult = await response.json();
+
+    if (data.resultCount === 0 || !data.results[0]) {
+      return null;
+    }
+
+    const episode = data.results[0];
+    if (episode.trackName) {
+      return { title: episode.trackName };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to fetch episode details from iTunes:', error);
+    return null;
+  }
+}
+
+/**
  * Parses RSS feed and finds the specific episode
  */
 export async function getEpisodeFromFeed(
@@ -117,16 +149,34 @@ export async function getEpisodeFromFeed(
     let episode;
 
     if (episodeId) {
-      // Try to find the specific episode by ID in the guid
-      episode = feed.items.find((item) => {
-        const guid = item.guid || '';
-        return guid.includes(episodeId) || guid.endsWith(episodeId);
-      });
+      // First, try to get episode title from iTunes API
+      const itunesEpisode = await getEpisodeDetailsFromiTunes(episodeId);
 
-      // If not found by guid, try matching by other means or just use the first episode
+      if (itunesEpisode?.title) {
+        // Match by title (normalized for comparison)
+        const normalizeTitle = (title: string) => title.toLowerCase().trim();
+        const targetTitle = normalizeTitle(itunesEpisode.title);
+
+        episode = feed.items.find((item) => {
+          const itemTitle = normalizeTitle(item.title || '');
+          return itemTitle === targetTitle || itemTitle.includes(targetTitle) || targetTitle.includes(itemTitle);
+        });
+
+        if (episode) {
+          console.log('Found episode by title match:', episode.title);
+        }
+      }
+
+      // If not found by title, try to find by ID in the guid
       if (!episode) {
-        // Apple's episode ID sometimes doesn't directly match RSS guid
-        // Fall back to most recent episode with a warning
+        episode = feed.items.find((item) => {
+          const guid = item.guid || '';
+          return guid.includes(episodeId) || guid.endsWith(episodeId);
+        });
+      }
+
+      // If still not found, fall back to most recent episode with a warning
+      if (!episode) {
         console.warn('Could not find specific episode, using most recent');
         episode = feed.items[0];
       }
