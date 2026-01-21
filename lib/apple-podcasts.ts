@@ -80,23 +80,33 @@ export async function getPodcastFeedUrl(podcastId: string): Promise<{ feedUrl: s
 export async function getEpisodeDetailsFromiTunes(episodeId: string): Promise<{ title: string } | null> {
   try {
     const lookupUrl = `https://itunes.apple.com/lookup?id=${episodeId}`;
+    console.log('Looking up episode from iTunes:', lookupUrl);
+
     const response = await fetch(lookupUrl);
+    console.log('iTunes API response status:', response.status);
 
     if (!response.ok) {
+      console.error('iTunes API returned non-OK status:', response.status);
       return null;
     }
 
     const data: iTunesLookupResult = await response.json();
+    console.log('iTunes API result count:', data.resultCount);
 
     if (data.resultCount === 0 || !data.results[0]) {
+      console.log('No results from iTunes API');
       return null;
     }
 
     const episode = data.results[0];
+    console.log('iTunes episode data:', JSON.stringify(episode, null, 2));
+
     if (episode.trackName) {
+      console.log('Found episode title from iTunes:', episode.trackName);
       return { title: episode.trackName };
     }
 
+    console.log('No trackName in iTunes response');
     return null;
   } catch (error) {
     console.error('Failed to fetch episode details from iTunes:', error);
@@ -148,14 +158,22 @@ export async function getEpisodeFromFeed(
 
     let episode;
 
+    console.log('Episode ID from URL:', episodeId);
+    console.log('Total episodes in feed:', feed.items.length);
+
     if (episodeId) {
       // First, try to get episode title from iTunes API
       const itunesEpisode = await getEpisodeDetailsFromiTunes(episodeId);
+      console.log('iTunes episode lookup result:', itunesEpisode);
 
       if (itunesEpisode?.title) {
         // Match by title (normalized for comparison)
         const normalizeTitle = (title: string) => title.toLowerCase().trim();
         const targetTitle = normalizeTitle(itunesEpisode.title);
+        console.log('Looking for title:', targetTitle);
+
+        // Log first 5 episode titles from feed for debugging
+        console.log('First 5 feed episode titles:', feed.items.slice(0, 5).map(i => i.title));
 
         episode = feed.items.find((item) => {
           const itemTitle = normalizeTitle(item.title || '');
@@ -164,24 +182,31 @@ export async function getEpisodeFromFeed(
 
         if (episode) {
           console.log('Found episode by title match:', episode.title);
+        } else {
+          console.log('No title match found');
         }
       }
 
       // If not found by title, try to find by ID in the guid
       if (!episode) {
+        console.log('Trying to match by guid...');
         episode = feed.items.find((item) => {
           const guid = item.guid || '';
           return guid.includes(episodeId) || guid.endsWith(episodeId);
         });
+        if (episode) {
+          console.log('Found episode by guid match:', episode.title);
+        }
       }
 
       // If still not found, fall back to most recent episode with a warning
       if (!episode) {
-        console.warn('Could not find specific episode, using most recent');
+        console.warn('Could not find specific episode, using most recent:', feed.items[0]?.title);
         episode = feed.items[0];
       }
     } else {
       // No episode ID specified, use most recent
+      console.log('No episode ID in URL, using most recent');
       episode = feed.items[0];
     }
 
